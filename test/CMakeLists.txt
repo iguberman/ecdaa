@@ -29,6 +29,7 @@ set(TEST_SRCS
         prng-tests.c
         schnorr-tests.c
         benchmarks.c
+        theft/test_theft.c
         )
 
 foreach(case_file ${TEST_SRCS})
