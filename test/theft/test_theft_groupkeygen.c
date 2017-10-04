@@ -2,22 +2,22 @@
 // Created by Irina Guberman on 9/26/17.
 //
 #include "theft.h"
-#include "file_utils.h"
-
+#include "test_theft.h"
+#include "greatest.h"
 #include <ecdaa.h>
 
 
 static enum theft_trial_res
 prop_groupkey_generated(struct theft *t, void *arg1) {
 
-    struct buffer *input = (struct buffer *) arg1;
     (void)t;
+    (void) arg1;
+
     // Initialize PRNG
     struct ecdaa_prng rng;
-
     if (0 != ecdaa_prng_init(&rng)) {
         fputs("Error initializing ecdaa_prng\n", stderr);
-        return ERROR;
+        return THEFT_TRIAL_ERROR;
     }
 
     // Create issuer key-pair
@@ -25,39 +25,11 @@ prop_groupkey_generated(struct theft *t, void *arg1) {
     struct ecdaa_issuer_secret_key_BN254 isk;
     if (0 != ecdaa_issuer_key_pair_BN254_generate(&ipk, &isk, &rng)) {
         fprintf(stderr, "Error generating issuer key-pair\n");
-        return ERROR;
-    }
-
-    // Verify public key
-    ecdaa_issuer_public_key_BN254_serialize(buffer, &ipk);
-    if(strlen(buffer) != ECDAA_ISSUER_PUBLIC_KEY_BN254_LENGTH){
-        return FAIL;
-    }
-
-    // Verify secret key
-    ecdaa_issuer_secret_key_BN254_serialize(buffer, &isk);
-    if(strlen(buffer) != ECDAA_ISSUER_SECRET_KEY_BN254_LENGTH){
-        return FAIL;
+        return THEFT_TRIAL_ERROR;
     }
 
     return THEFT_TRIAL_PASS;
-
-    // return THEFT_TRIAL_PASS, FAIL, SKIP, or ERROR
 }
-
-
-//static struct theft_type_info random_buffer_info = {
-        /* allocate a buffer based on random bitstream */
-//        .alloc = random_buffer_alloc_cb,
-        /* free the buffer */
-//        .free = random_buffer_free_cb,
-        /* get a hash based on the buffer */
-//        .hash = random_buffer_hash_cb,
-        /* return a simpler variant of a buffer, or an error */
-//        .shrink = random_buffer_shrink_cb,
-        /* print an instance */
-//        .print = random_buffer_print_cb,
-//};
 
 static enum theft_alloc_res
 uint8_alloc(struct theft *t, void *env, void **output) {
@@ -75,7 +47,7 @@ static void uint8_free(void *p, void *env) {
     free(p);
 }
 
-static void uint_print(FILE *f, const void *p, void *env) {
+static void uint8_print(FILE *f, const void *p, void *env) {
     (void)env;
     fprintf(f, "%u", *(uint8_t *)p);
 }
@@ -89,7 +61,7 @@ static struct theft_type_info static_buffer_info = {
         },
 };
 
-bool test_encode_decode_roundtrip(void) {
+TEST test_groupkey_generation(void) {
 //    struct repeat_once_env env = { .fail = false };
 
     /* Get a seed based on the current time */
@@ -109,5 +81,11 @@ bool test_encode_decode_roundtrip(void) {
     /* Run the property test. */
     enum theft_run_res res = theft_run(&config);
     return res == THEFT_RUN_PASS;
+}
+
+SUITE(groupkeygen) {
+
+    // Various tests for single autoshrinking steps, with an injected PRNG
+    RUN_TEST(test_groupkey_generation);
 }
 
